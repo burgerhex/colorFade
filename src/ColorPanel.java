@@ -3,17 +3,14 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 
-enum Direction {
-    UP, DOWN, LEFT, RIGHT
-}
 
 @SuppressWarnings({"WeakerAccess", "unused"})
 public class ColorPanel extends JPanel {
 
-    public static final double  FADE_SPEED = 0.0002;
+    public static final double  FADE_SPEED = 0.0005;
 
-    public static final boolean   SCROLL_COLOR = false;
-    public static final Direction SCROLL_DIRECTION = Direction.LEFT;
+    public static final boolean   SCROLL_COLOR = true;
+    public static final Direction SCROLL_DIRECTION = Direction.UP;
 
     private int width;
     private int height;
@@ -25,6 +22,10 @@ public class ColorPanel extends JPanel {
 
     private Color color;
 
+    private enum Direction {
+        UP, DOWN, LEFT, RIGHT
+    }
+
     public ColorPanel() {
         this(250, 250);
     }
@@ -34,7 +35,9 @@ public class ColorPanel extends JPanel {
     }
 
     public ColorPanel(int width, int height) {
-        setPreferredSize(new Dimension(width, height));
+        Dimension size = new Dimension(width, height);
+        setPreferredSize(size);
+        setSize(size);
 
         this.width = width;
         this.height = height;
@@ -42,7 +45,9 @@ public class ColorPanel extends JPanel {
         this.hue = 0.0;
         this.saturation = 1.0;
         this.brightness = 1.0;
-        setColor();
+
+        setColor(hue, saturation, brightness);
+        setBackground(color);
     }
 
     public void tick() throws InterruptedException {
@@ -54,8 +59,18 @@ public class ColorPanel extends JPanel {
         repaint();
     }
 
-    private void setColor() {
-        this.color = Color.getHSBColor((float) hue, (float) saturation, (float) brightness);
+    private Color getHSB(double h, double s, double b) {
+        return Color.getHSBColor((float) h, (float) s, (float) b);
+    }
+
+    private void setColor(double hue, double saturation, double brightness) {
+        this.color = getHSB(hue, saturation, brightness);
+    }
+
+    private Color getColorBefore(int turns) {
+        double oldHue = hue - turns * FADE_SPEED;
+        while (oldHue < 0) oldHue += 1;
+        return getHSB(oldHue, saturation, brightness);
     }
 
     @Override
@@ -71,30 +86,53 @@ public class ColorPanel extends JPanel {
         hue += FADE_SPEED;
         hue %= 1;
 
-        setColor();
+        setColor(hue, saturation, brightness);
     }
 
     private void drawColor(Graphics g) {
         Color before = g.getColor();
 
-        // TODO: implement this
+        // TODO: this is really bad
         if (SCROLL_COLOR) {
 
             switch (SCROLL_DIRECTION) {
                 case UP:
+                    for (int i = 0; i < height; i++) {
+                        Color color = getColorBefore(height - 1 - i);
+                        g.setColor(color);
+                        g.fillRect(0, i, width, 1);
+                    }
+
                     break;
                 case DOWN:
+                    for (int i = 0; i < height; i++) {
+                        Color color = getColorBefore(i);
+                        g.setColor(color);
+                        g.fillRect(0, i, width, 1);
+                    }
+
                     break;
                 case LEFT:
+                    for (int i = 0; i < width; i++) {
+                        Color color = getColorBefore(width - 1 - i);
+                        g.setColor(color);
+                        g.fillRect(i, 0, 1, height);
+                    }
+
                     break;
                 case RIGHT:
+                    for (int i = 0; i < width; i++) {
+                        Color color = getColorBefore(i);
+                        g.setColor(color);
+                        g.fillRect(i, 0, 1, height);
+                    }
+
                     break;
                 default:
                     break;
             }
 
         } else {
-            g.setColor(color);
             g.fillRect(0, 0, width, height);
         }
 
